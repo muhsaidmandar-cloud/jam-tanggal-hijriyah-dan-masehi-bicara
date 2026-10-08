@@ -19,6 +19,7 @@ import android.widget.Spinner;
 import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
 import android.widget.Toast;
+import android.os.Build;
 
 public class MainActivity extends Activity {
     
@@ -131,7 +132,36 @@ public class MainActivity extends Activity {
         spinnerNadaAkhir.setAdapter(adapterNadaAkhir);
         box.addView(spinnerNadaAkhir);
 
-        // 7. Tombol Simpan / Terapkan Pengaturan
+        // --- TAMBAHAN TOMBOL TES SUARA ---
+        Button btnTest = new Button(this);
+        btnTest.setText("Tes Suara Sekarang");
+        btnTest.setBackgroundColor(Color.parseColor("#4CAF50")); // Warna Hijau
+        btnTest.setTextColor(Color.WHITE);
+        
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Memanggil Service secara manual untuk mengetes suara seketika
+                Intent serviceIntent = new Intent(MainActivity.this, NovanService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                Toast.makeText(MainActivity.this, "Memulai tes suara...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        LinearLayout.LayoutParams testParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        testParams.setMargins(0, 30, 0, 10);
+        btnTest.setLayoutParams(testParams);
+        box.addView(btnTest);
+        // ---------------------------------
+
+        // 7. Tombol Simpan / Terapkan Pengaturan Alarm
         Button btnSimpan = new Button(this);
         btnSimpan.setText("Terapkan Pengaturan Alarm");
         
@@ -151,7 +181,7 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT, 
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        btnParams.setMargins(0, 40, 0, 40);
+        btnParams.setMargins(0, 20, 0, 40);
         btnSimpan.setLayoutParams(btnParams);
         box.addView(btnSimpan);
 
