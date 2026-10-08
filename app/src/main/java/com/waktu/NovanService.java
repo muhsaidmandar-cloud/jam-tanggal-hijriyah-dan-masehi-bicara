@@ -11,7 +11,10 @@ import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
 import androidx.annotation.Nullable;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 public class NovanService extends Service implements TextToSpeech.OnInitListener {
     private TextToSpeech tts;
@@ -25,7 +28,6 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Membuat Foreground Service agar tidak dimatikan sistem Android
         createNotificationChannel();
         Notification notification = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -37,48 +39,62 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
         }
         startForeground(1, notification);
 
-        // Proses Baca Waktu & Baterai
-        bacaWaktuDanBaterai();
+        if (tts != null) {
+            bacaInformasiLengkap();
+        }
 
         return START_STICKY;
-    }
-
-    private void bacaWaktuDanBaterai() {
-        BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
-        int batteryLevel = 0;
-        if (bm != null) {
-            batteryLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-        }
-
-        Calendar calendar = Calendar.getInstance();
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-
-        final String pesanSuara = "Pukul " + hour + " lewat " + minute + " menit. Sisa baterai " + batteryLevel + " persen.";
-
-        if (tts != null) {
-            tts.speak(pesanSuara, TextToSpeech.QUEUE_FLUSH, null, "VoiceID");
-        }
     }
 
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             tts.setLanguage(new Locale("id", "ID"));
+            bacaInformasiLengkap();
         }
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Novan Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(serviceChannel);
-            }
+    private void bacaInformasiLengkap() {
+        // 1. Ambil Sisa Baterai
+        BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
+        int batteryLevel = 0;
+        if (bm != null) {
+            batteryLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        }
+
+        // 2. Ambil Jam & Menit Masehi
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+
+        // 3. Format Tanggal Masehi (Bahasa Indonesia)
+        SimpleDateFormat sdfMasehi = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("id", "ID"));
+        String tanggalMasehi = sdfMasehi.format(new Date());
+
+        // 4. Perhitungan Sederhana / Format Tanggal Hijriyah (Estimasi Kalender Islam)
+        // Menggunakan kalender Hijriyah bawaan Java (Islamic Umm al-Qura)
+        Calendar hijriCalendar = Calendar.getInstance(new Locale("in", "ID", "JP")); // Menggunakan locale islam jika didukung sistem, atau format alternatif
+        // Agar lebih aman di berbagai perangkat Android, kita gunakan penanggalan Hijriah standar sistem:
+        android.icu.util.Calendar icuCalendar = null;
+        String tanggalHijriyah = "";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            android.icu.util.ULocale uLocale = new android.icu.util.ULocale("id_ID@calendar=islamic-umalqura");
+            icuCalendar = android.icu.util.Calendar.getInstance(uLocale);
+            android.icu.text.SimpleDateFormat icuSdf = new android.icu.text.SimpleDateFormat("d MMMM yyyy", new Locale("id", "ID"));
+            icuSdf.setCalendar(icuCalendar);
+            tanggalHijriyah = icuSdf.format(new Date());
+        } else {
+            tanggalHijriyah = "Hijriyah";
+        }
+
+        // 5. Susun Pesan Suara Lengkap
+        String pesanSuara = "Pukul " + hour + " lewat " + minute + " menit. " +
+                "Tanggal Masehi " + tanggalMasehi + ". " +
+                "Tanggal Hijriyah " + tanggalHijriyah + ". " +
+                "Sisa baterai " + batteryLevel + " persen.";
+
+        if (tts != null) {
+            tts.speak(pesanSuara, TextToSpeech.QUEUE_FLUSH, null, "VoiceID");
         }
     }
 
