@@ -14,7 +14,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
-import java.util.TimeZone;
 
 public class NovanService extends Service implements TextToSpeech.OnInitListener {
     private TextToSpeech tts;
@@ -62,35 +61,18 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
             batteryLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
         }
 
-        // 2. Ambil Jam & Menit Masehi
+        // 2. Ambil Jam & Menit
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
 
-        // 3. Format Tanggal Masehi (Bahasa Indonesia)
+        // 3. Format Tanggal Masehi
         SimpleDateFormat sdfMasehi = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("id", "ID"));
         String tanggalMasehi = sdfMasehi.format(new Date());
 
-        // 4. Perhitungan Sederhana / Format Tanggal Hijriyah (Estimasi Kalender Islam)
-        // Menggunakan kalender Hijriyah bawaan Java (Islamic Umm al-Qura)
-        Calendar hijriCalendar = Calendar.getInstance(new Locale("in", "ID", "JP")); // Menggunakan locale islam jika didukung sistem, atau format alternatif
-        // Agar lebih aman di berbagai perangkat Android, kita gunakan penanggalan Hijriah standar sistem:
-        android.icu.util.Calendar icuCalendar = null;
-        String tanggalHijriyah = "";
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            android.icu.util.ULocale uLocale = new android.icu.util.ULocale("id_ID@calendar=islamic-umalqura");
-            icuCalendar = android.icu.util.Calendar.getInstance(uLocale);
-            android.icu.text.SimpleDateFormat icuSdf = new android.icu.text.SimpleDateFormat("d MMMM yyyy", new Locale("id", "ID"));
-            icuSdf.setCalendar(icuCalendar);
-            tanggalHijriyah = icuSdf.format(new Date());
-        } else {
-            tanggalHijriyah = "Hijriyah";
-        }
-
-        // 5. Susun Pesan Suara Lengkap
+        // 4. Susun Pesan Suara Lengkap (Jam, Masehi, dan Baterai)
         String pesanSuara = "Pukul " + hour + " lewat " + minute + " menit. " +
                 "Tanggal Masehi " + tanggalMasehi + ". " +
-                "Tanggal Hijriyah " + tanggalHijriyah + ". " +
                 "Sisa baterai " + batteryLevel + " persen.";
 
         if (tts != null) {
