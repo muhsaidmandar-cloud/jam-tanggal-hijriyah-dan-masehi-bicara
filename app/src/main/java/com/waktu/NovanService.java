@@ -11,9 +11,7 @@ import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
 import androidx.annotation.Nullable;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
-import java.text.SimpleDateFormat;
 
 public class NovanService extends Service implements TextToSpeech.OnInitListener {
     private TextToSpeech tts;
@@ -39,7 +37,7 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
         startForeground(1, notification);
 
         if (tts != null) {
-            bacaInformasiLengkap();
+            bacaWaktuDanBaterai();
         }
 
         return START_STICKY;
@@ -49,30 +47,29 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             tts.setLanguage(new Locale("id", "ID"));
-            bacaInformasiLengkap();
+            bacaWaktuDanBaterai();
         }
     }
 
-    private void bacaInformasiLengkap() {
-        // 1. Ambil Sisa Baterai
+    private void bacaWaktuDanBaterai() {
+        // Ambil Sisa Baterai
         BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
         int batteryLevel = 0;
         if (bm != null) {
             batteryLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
         }
 
-        // 2. Ambil Jam & Menit
+        // Ambil Jam dan Menit
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int month = calendar.get(Calendar.MONTH) + 1;
+        int year = calendar.get(Calendar.YEAR);
 
-        // 3. Format Tanggal Masehi
-        SimpleDateFormat sdfMasehi = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("id", "ID"));
-        String tanggalMasehi = sdfMasehi.format(new Date());
-
-        // 4. Susun Pesan Suara Lengkap (Jam, Masehi, dan Baterai)
+        // Susun Pesan Suara Lengkap
         String pesanSuara = "Pukul " + hour + " lewat " + minute + " menit. " +
-                "Tanggal Masehi " + tanggalMasehi + ". " +
+                "Tanggal " + day + " bulan " + month + " tahun " + year + ". " +
                 "Sisa baterai " + batteryLevel + " persen.";
 
         if (tts != null) {
