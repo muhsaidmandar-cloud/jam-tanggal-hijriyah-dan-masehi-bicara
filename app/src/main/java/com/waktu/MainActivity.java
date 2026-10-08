@@ -171,10 +171,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Fungsi Mengaktifkan Alarm Manager
+    // Fungsi Mengaktifkan Alarm Manager menggunakan NovanReceiver
     private void aturAlarmOtomatis(long intervalMillis) {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(this, AlarmReceiver.class);
+        Intent intent = new Intent(this, NovanReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -190,10 +190,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Fungsi Mematikan Alarm
+    // Fungsi Mematikan Alarm menggunakan NovanReceiver
     private void batalkanAlarmOtomatis() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(this, AlarmReceiver.class);
+        Intent intent = new Intent(this, NovanReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
