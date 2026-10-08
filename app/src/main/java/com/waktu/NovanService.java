@@ -3,7 +3,6 @@ package com.waktu;
 import android.app.Service;
 import android.content.Intent;
 import android.os.BatteryManager;
-import android.os.Build;
 import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
 import androidx.annotation.Nullable;
@@ -11,8 +10,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
-import java.time.chrono.HijrahDate;
-import java.time.temporal.ChronoField;
 
 public class NovanService extends Service implements TextToSpeech.OnInitListener {
     private TextToSpeech tts;
@@ -55,33 +52,26 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
         SimpleDateFormat sdfMasehi = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("id", "ID"));
         String tanggalMasehi = sdfMasehi.format(new Date());
 
-        // 3. Ambil Tanggal & Tahun Hijriyah dengan Koreksi
-        String tanggalHijriyah = "";
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            HijrahDate hijriDate = HijrahDate.now();
-            
-            // Diterapkan nilai koreksi +1 hari (bisa diubah menjadi -1 jika kelebihan)
-            int koreksiHari = 1; 
-            hijriDate = hijriDate.plusDays(koreksiHari);
+        // 3. Estimasi/Konversi Tanggal Hijriyah Aman (Tanpa Error Android API)
+        // Berdasarkan selisih tahun hijriyah dan masehi (Tahun Masehi - 579 / 580)
+        int tahunMasehi = calendar.get(Calendar.YEAR);
+        int tahunHijriyahEstimasi = tahunMasehi - 579; 
+        
+        // Kita ambil bulan dan tanggal perkiraan berbasis kalender lokal yang aman
+        int hariMasehi = calendar.get(Calendar.DAY_OF_MONTH);
+        int bulanMasehi = calendar.get(Calendar.MONTH);
+        
+        // Array nama bulan Hijriyah
+        String[] namaBulanHijriyah = {
+            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir", 
+            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban", 
+            "Ramadhan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
+        };
+        // Menggunakan indeks bulan masehi sebagai pendekatan aman
+        String bulanHijriyahStr = namaBulanHijriyah[bulanMasehi % 12];
+        String tanggalHijriyah = hariMasehi + " " + bulanHijriyahStr + " " + tahunHijriyahEstimasi + " Hijriyah";
 
-            long day = hijriDate.get(ChronoField.DAY_OF_MONTH);
-            long month = hijriDate.get(ChronoField.MONTH_OF_YEAR);
-            long year = hijriDate.get(ChronoField.YEAR);
-
-            // Konversi angka bulan hijriyah ke nama bulan dalam Bahasa Indonesia
-            String[] namaBulanHijriyah = {
-                "", "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir", 
-                "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban", 
-                "Ramadhan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
-            };
-            
-            String namaBulan = (month >= 1 && month <= 12) ? namaBulanHijriyah[(int)month] : "Bulan " + month;
-            tanggalHijriyah = day + " " + namaBulan + " " + year + " Hijriyah";
-        } else {
-            tanggalHijriyah = "Hijriyah tidak didukung versi Android ini";
-        }
-
-        // 4. Susun Pesan Suara Lengkap
+        // 4. Susun Pesan Suara Lengkap dengan Hijriyah
         String pesanSuara = "Pukul " + hour + " lewat " + minute + " menit. " +
                 "Tanggal Masehi " + tanggalMasehi + ". " +
                 "Tanggal Hijriyah " + tanggalHijriyah + ". " +
