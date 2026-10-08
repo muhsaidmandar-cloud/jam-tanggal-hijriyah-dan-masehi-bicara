@@ -5,6 +5,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.graphics.Color;
@@ -26,24 +27,22 @@ public class MainActivity extends Activity {
     private Switch switchMaster;
     private Spinner spinnerInterval, spinnerTts, spinnerNadaAwal, spinnerNadaAkhir;
     private CheckBox cbJam, cbMasehi, cbHijriyah, cbBaterai;
+    private static final String PREF_NAME = "NovanPrefs";
 
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
 
-        // Bungkus dengan ScrollView agar nyaman digulir
         ScrollView scrollView = new ScrollView(this);
         scrollView.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 
             LinearLayout.LayoutParams.MATCH_PARENT
         ));
 
-        // Layout Utama (Vertical)
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(32, 32, 32, 32);
 
-        // Judul Aplikasi
         TextView title = new TextView(this);
         title.setText("Jam, Tanggal Hijriyah & Masehi Bicara");
         title.setTextSize(20);
@@ -51,14 +50,13 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER);
         box.addView(title);
 
-        // 1. Switch Master (Aktif/Nonaktif Otomatis)
+        // 1. Switch Master
         switchMaster = new Switch(this);
         switchMaster.setText("\nAktifkan Pengingat Suara Otomatis");
         switchMaster.setTextSize(16);
-        switchMaster.setChecked(false);
         box.addView(switchMaster);
 
-        // 2. Pilihan Interval Waktu Berbunyi
+        // 2. Pilihan Interval
         TextView lblInterval = new TextView(this);
         lblInterval.setText("\nInterval Waktu Berbunyi:");
         lblInterval.setTextColor(Color.BLACK);
@@ -96,7 +94,7 @@ public class MainActivity extends Activity {
         cbBaterai.setChecked(true);
         box.addView(cbBaterai);
 
-        // 4. Pengaturan Suara TTS (Text-to-Speech)
+        // 4. Pengaturan Suara TTS
         TextView lblTts = new TextView(this);
         lblTts.setText("\nPilih Suara / Bahasa TTS:");
         lblTts.setTextColor(Color.BLACK);
@@ -132,16 +130,19 @@ public class MainActivity extends Activity {
         spinnerNadaAkhir.setAdapter(adapterNadaAkhir);
         box.addView(spinnerNadaAkhir);
 
-        // --- TAMBAHAN TOMBOL TES SUARA ---
+        // Load Preferensi yang tersimpan sebelumnya
+        loadPreferences();
+
+        // Tombol Tes Suara
         Button btnTest = new Button(this);
         btnTest.setText("Tes Suara Sekarang");
-        btnTest.setBackgroundColor(Color.parseColor("#4CAF50")); // Warna Hijau
+        btnTest.setBackgroundColor(Color.parseColor("#4CAF50"));
         btnTest.setTextColor(Color.WHITE);
         
         btnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Memanggil Service secara manual untuk mengetes suara seketika
+                simpanPreferensi(); // Simpan dulu sebelum dites
                 Intent serviceIntent = new Intent(MainActivity.this, NovanService.class);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent);
@@ -159,15 +160,15 @@ public class MainActivity extends Activity {
         testParams.setMargins(0, 30, 0, 10);
         btnTest.setLayoutParams(testParams);
         box.addView(btnTest);
-        // ---------------------------------
 
-        // 7. Tombol Simpan / Terapkan Pengaturan Alarm
+        // Tombol Simpan & Terapkan Pengaturan
         Button btnSimpan = new Button(this);
         btnSimpan.setText("Terapkan Pengaturan Alarm");
         
         btnSimpan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                simpanPreferensi();
                 if (switchMaster.isChecked()) {
                     long intervalMillis = getSelectedIntervalMillis(spinnerInterval.getSelectedItemPosition());
                     aturAlarmOtomatis(intervalMillis);
@@ -185,23 +186,48 @@ public class MainActivity extends Activity {
         btnSimpan.setLayoutParams(btnParams);
         box.addView(btnSimpan);
 
-        // Masukkan ke ScrollView dan tampilkan
         scrollView.addView(box);
         setContentView(scrollView);
     }
 
-    // Helper untuk menghitung milidetik berdasarkan pilihan interval
+    private void simpanPreferensi() {
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("master", switchMaster.isChecked());
+        editor.putInt("interval", spinnerInterval.getSelectedItemPosition());
+        editor.putBoolean("cbJam", cbJam.isChecked());
+        editor.putBoolean("cbMasehi", cbMasehi.isChecked());
+        editor.putBoolean("cbHijriyah", cbHijriyah.isChecked());
+        editor.putBoolean("cbBaterai", cbBaterai.isChecked());
+        editor.putInt("tts", spinnerTts.getSelectedItemPosition());
+        editor.putInt("nadaAwal", spinnerNadaAwal.getSelectedItemPosition());
+        editor.putInt("nadaAkhir", spinnerNadaAkhir.getSelectedItemPosition());
+        editor.apply();
+    }
+
+    private void loadPreferences() {
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        switchMaster.setChecked(prefs.getBoolean("master", false));
+        spinnerInterval.setSelection(prefs.getInt("interval", 1));
+        cbJam.setChecked(prefs.getBoolean("cbJam", true));
+        cbMasehi.setChecked(prefs.getBoolean("cbMasehi", true));
+        cbHijriyah.setChecked(prefs.getBoolean("cbHijriyah", true));
+        cbBaterai.setChecked(prefs.getBoolean("cbBaterai", true));
+        spinnerTts.setSelection(prefs.getInt("tts", 0));
+        spinnerNadaAwal.setSelection(prefs.getInt("nadaAwal", 0));
+        spinnerNadaAkhir.setSelection(prefs.getInt("nadaAkhir", 0));
+    }
+
     private long getSelectedIntervalMillis(int position) {
         switch (position) {
-            case 0: return 5 * 60 * 1000;   // 5 Menit
-            case 1: return 15 * 60 * 1000;  // 15 Menit
-            case 2: return 30 * 60 * 1000;  // 30 Menit
-            case 3: return 60 * 60 * 1000;  // 1 Jam
+            case 0: return 5 * 60 * 1000;
+            case 1: return 15 * 60 * 1000;
+            case 2: return 30 * 60 * 1000;
+            case 3: return 60 * 60 * 1000;
             default: return 15 * 60 * 1000;
         }
     }
 
-    // Fungsi Mengaktifkan Alarm Manager menggunakan NovanReceiver
     private void aturAlarmOtomatis(long intervalMillis) {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, NovanReceiver.class);
@@ -220,7 +246,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Fungsi Mematikan Alarm menggunakan NovanReceiver
     private void batalkanAlarmOtomatis() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, NovanReceiver.class);
