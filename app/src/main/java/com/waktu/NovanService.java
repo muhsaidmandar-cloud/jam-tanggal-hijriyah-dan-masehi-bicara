@@ -83,7 +83,6 @@ public class NovanService extends Service implements TextToSpeech.OnInitListener
     }
 
     @Nullable
-    @IBinder
     @Override
     public IBinder onBind(Intent intent) {
         return null;
